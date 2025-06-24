@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DailyZap</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" href="icon-192.png"/>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #a78bfa, #f472b6);
+      color: white;
+      text-align: center;
+      padding: 2rem;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px #00000055;
+    }
+
+    input[type="text"] {
+      padding: 0.8rem;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 1rem;
+      border: none;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.7rem 1.5rem;
+      margin: 0.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 1.5rem;
+      background-color: #7c3aed;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 10px #00000044;
+    }
+
+    button:hover {
+      background-color: #5b21b6;
+    }
+
+    .stats {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .checkbox {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+    }
+
+    .checkbox input {
+      transform: scale(1.5);
+      margin-right: 0.5rem;
+    }
+
+    .shop {
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>DailyZap ⚡</h1>
+
+  <input type="text" id="goal" placeholder="What's your daily zap for?" />
+  <br />
+  <button onclick="setGoal()">Set Goal</button>
+
+  <div class="stats" id="status" style="display: none;">
+    <p><strong>Goal:</strong> <span id="currentGoal"></span></p>
+    <p>🔥 Streak: <span id="streak">0</span> days</p>
+    <p>⚡ Zap Points: <span id="points">0</span></p>
+    <p>❄️ Freezes: <span id="freezes">1</span></p>
+
+    <div class="checkbox">
+      <label><input type="checkbox" id="dailyCheck" onchange="checkToday()"> I did it today!</label>
+    </div>
+
+    <div class="shop">
+      <button onclick="buyFreeze()">Buy Freeze (10⚡)</button>
+    </div>
+  </div>
+
+  <script>
+    let streak = parseInt(localStorage.getItem('streak') || 0);
+    let points = parseInt(localStorage.getItem('points') || 0);
+    let freezes = parseInt(localStorage.getItem('freezes') || 1);
+    let lastDate = localStorage.getItem('lastDate') || '';
+    let goal = localStorage.getItem('goal') || '';
+    let freezeCooldown = parseInt(localStorage.getItem('freezeCooldown') || 0);
+
+    const today = new Date().toDateString();
+
+    function setGoal() {
+      goal = document.getElementById('goal').value.trim();
+      if (!goal) return alert("Type your goal first!");
+      localStorage.setItem('goal', goal);
+      document.getElementById('currentGoal').textContent = goal;
+      document.getElementById('status').style.display = 'block';
+    }
+
+    function updateUI() {
+      document.getElementById('currentGoal').textContent = goal;
+      document.getElementById('streak').textContent = streak;
+      document.getElementById('points').textContent = points;
+      document.getElementById('freezes').textContent = freezes;
+      document.getElementById('status').style.display = goal ? 'block' : 'none';
+    }
+
+    function checkToday() {
+      if (lastDate === today) {
+        alert("You already zapped today!");
+        return;
+      }
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const missed = lastDate && new Date(lastDate).toDateString() !== yesterday.toDateString();
+
+      if (missed) {
+        if (freezes > 0) {
+          alert("❄️ You missed a day, but your Freeze saved your streak!");
+          freezes--;
+        } else {
+          alert("⚠️ You missed a day! Streak reset.");
+          streak = 0;
+        }
+      }
+
+      streak++;
+      points++;
+      if (streak % 5 === 0) points += 3;
+
+      lastDate = today;
+      localStorage.setItem('streak', streak);
+      localStorage.setItem('points', points);
+      localStorage.setItem('freezes', freezes);
+      localStorage.setItem('lastDate', today);
+      updateUI();
+    }
+
+    function buyFreeze() {
+      if (points >= 10) {
+        freezes++;
+        points -= 10;
+        alert("You bought a Freeze! ❄️");
+        localStorage.setItem('freezes', freezes);
+        localStorage.setItem('points', points);
+        updateUI();
+      } else {
+        alert("Not enough points!");
+      }
+    }
+
+    // Weekly auto-freeze
+    if (freezeCooldown >= 7) {
+      freezes++;
+      freezeCooldown = 0;
+    } else {
+      freezeCooldown++;
+    }
+    localStorage.setItem('freezeCooldown', freezeCooldown);
+
+    if (goal) document.getElementById('goal').value = goal;
+    updateUI();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
